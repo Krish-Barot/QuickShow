@@ -1,11 +1,12 @@
 import { Inngest } from "inngest";
 import User from "../models/User.js";
-import 'dotenv/config'
+import dotenv from 'dotenv';
 
+dotenv.config();
 
 // Create a client to send and receive events
-export const inngest = new Inngest({ id: "movie-ticket-booking", signingKey: process.env.INGEST_SIGNING_KEY, });
-
+export const inngest = new Inngest({ id: "movie-ticket-booking", signingKey: process.env.INGEST_SIGNING_KEY });
+console.log(process.env.INGEST_SIGNING_KEY)
 // Inngest Function to save user data to a database
 const syncUserCreation = inngest.createFunction(
     {id: "sync-user-from-clerk"},
