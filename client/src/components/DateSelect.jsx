@@ -12,9 +12,11 @@ const DateSelect = ({ dateTime, id }) => {
         if(!selected){
             return toast('Please Select a Date');
         }
-
-        navigate(`/movies/${id}/${selected}`)
-        scrollTo(0,0); 
+        
+        // Format the date as YYYY-MM-DD for consistency
+        const formattedDate = new Date(selected).toISOString().split('T')[0];
+        navigate(`/movies/${id}/${formattedDate}`);
+        scrollTo(0, 0);
     }
 
     return (
@@ -27,18 +29,23 @@ const DateSelect = ({ dateTime, id }) => {
                     <div className='flex items-center gap-6 text-sm mt-5'>
                         <ChevronLeftIcon width={28}/>
                         <span className='grid grid-cols-3 md:flex flex-wrap md:max-w-lg gap-4'>
-                            {Object.keys(dateTime).map((date) => (
-                                <button 
-                                    key={date} 
-                                    onClick={() => setSelected(date)}
-                                    className={`flex flex-col items-center justify-center h-14 w-14 aspect-square rounded cursor-pointer ${
-                                        selected === date ? 'bg-primary text-white' : 'border border-primary/20'
-                                    }`}
-                                >
-                                    <span>{new Date(date).getDate()}</span>
-                                    <span className='text-xs'>{new Date(date).toLocaleDateString("en-US", {month: "short"})}</span>
-                                </button>
-                            ))}
+                            {Object.keys(dateTime).map((dateStr) => {
+                                // Ensure consistent date parsing by using the full ISO string
+                                const date = new Date(dateStr);
+                                const formattedDate = date.toISOString().split('T')[0];
+                                return (
+                                    <button 
+                                        key={formattedDate}
+                                        onClick={() => setSelected(formattedDate)}
+                                        className={`flex flex-col items-center justify-center h-14 w-14 aspect-square rounded cursor-pointer ${
+                                            selected === formattedDate ? 'bg-primary text-white' : 'border border-primary/20'
+                                        }`}
+                                    >
+                                        <span>{date.getDate()}</span>
+                                        <span className='text-xs'>{date.toLocaleDateString("en-US", {month: "short"})}</span>
+                                    </button>
+                                );
+                            })}
                         </span>
                         <ChevronRightIcon width={28}/>
                     </div>
