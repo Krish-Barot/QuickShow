@@ -34,46 +34,59 @@ export const stripeWebHooks = async (request, response) => {
                 console.log('Payment intent succeeded', {
                     paymentIntentId: paymentIntent.id,
                     amount: paymentIntent.amount,
-                    status: paymentIntent.status
+                    status: paymentIntent.status,
+                    metadata: paymentIntent.metadata
                 });
 
-                // Try to find the checkout session for this payment intent
-                try {
-                    const sessions = await stripeInstance.checkout.sessions.list({
-                        payment_intent: paymentIntent.id,
-                        limit: 1,
-                        expand: ['data.payment_intent']
-                    });
-
-                    const session = sessions.data[0];
-                    if (session) {
-                        const bookingId = session?.metadata?.bookingId;
-                        console.log('Found checkout session for payment intent', {
-                            sessionId: session.id,
-                            bookingId: bookingId
+                // First check payment intent metadata directly
+                let bookingId = paymentIntent?.metadata?.bookingId;
+                
+                // If not found in payment intent, try to get from session
+                if (!bookingId) {
+                    try {
+                        const sessions = await stripeInstance.checkout.sessions.list({
+                            payment_intent: paymentIntent.id,
+                            limit: 1,
+                            expand: ['data.payment_intent']
                         });
 
-                        if (bookingId) {
-                            const updatedBooking = await Booking.findByIdAndUpdate(
-                                bookingId,
-                                { 
-                                    isPaid: true, 
-                                    paymentLink: '',
-                                    paymentStatus: 'paid',
-                                    paymentDate: new Date()
-                                },
-                                { new: true, runValidators: true }
-                            );
-                            
-                            if (updatedBooking) {
-                                console.log(`Successfully updated booking ${bookingId} from payment_intent`, updatedBooking);
-                            } else {
-                                console.error(`Failed to find booking with ID: ${bookingId}`);
-                            }
+                        const session = sessions.data[0];
+                        if (session) {
+                            bookingId = session?.metadata?.bookingId;
+                            console.log('Found checkout session for payment intent', {
+                                sessionId: session.id,
+                                bookingId: bookingId
+                            });
                         }
+                    } catch (err) {
+                        console.error('Error finding checkout session for payment intent:', err);
                     }
-                } catch (err) {
-                    console.error('Error finding checkout session for payment intent:', err);
+                }
+
+                // Update booking if we found a booking ID
+                if (bookingId) {
+                    try {
+                        const updatedBooking = await Booking.findByIdAndUpdate(
+                            bookingId,
+                            { 
+                                isPaid: true, 
+                                paymentLink: '',
+                                paymentStatus: 'paid',
+                                paymentDate: new Date()
+                            },
+                            { new: true, runValidators: true }
+                        );
+                        
+                        if (updatedBooking) {
+                            console.log(`Successfully updated booking ${bookingId}`, updatedBooking);
+                        } else {
+                            console.error(`Failed to find booking with ID: ${bookingId}`);
+                        }
+                    } catch (err) {
+                        console.error('Error updating booking:', err);
+                    }
+                } else {
+                    console.warn('No bookingId found in payment intent or session metadata');
                 }
                 break;
             }
