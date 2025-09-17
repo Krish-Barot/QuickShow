@@ -29,42 +29,6 @@ export const stripeWebHooks = async (request, response) => {
 
     try {
         switch (event.type) {
-            case 'checkout.session.completed': {
-                const session = event.data.object;
-                const bookingId = session?.metadata?.bookingId;
-                
-                console.log('Checkout session completed', {
-                    sessionId: session.id,
-                    paymentStatus: session.payment_status,
-                    bookingId: bookingId
-                });
-
-                if (bookingId) {
-                    const updatedBooking = await Booking.findByIdAndUpdate(
-                        bookingId,
-                        { 
-                            isPaid: true, 
-                            paymentLink: '',
-                            paymentStatus: 'paid',
-                            paymentDate: new Date()
-                        },
-                        { new: true, runValidators: true }
-                    );
-                    
-                    if (updatedBooking) {
-                        console.log(`Successfully updated booking ${bookingId}`, updatedBooking);
-                    } else {
-                        console.error(`Failed to find booking with ID: ${bookingId}`);
-                    }
-                } else {
-                    console.warn('No bookingId found in session metadata', {
-                        sessionId: session.id,
-                        metadata: session.metadata
-                    });
-                }
-                break;
-            }
-
             case 'payment_intent.succeeded': {
                 const paymentIntent = event.data.object;
                 console.log('Payment intent succeeded', {
