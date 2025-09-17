@@ -19,10 +19,6 @@ const PORT = 3000;
 await connectDB();
 
 // Stripe Webhooks Route
-app.post('/api/stripe/test', express.json(), (req, res) => {
-  console.log("Test webhook hit:", req.body);
-  res.status(200).json({ received: true, body: req.body });
-});
 
 app.use('/api/stripe', express.raw({ type: 'application/json' }), stripeWebHooks)
 

@@ -16,47 +16,29 @@ export const stripeWebHooks = async (request, response) => {
 
     try {
         switch (event.type) {
-            case 'checkout.session.completed': {
-                const session = event.data.object;
-                const bookingId = session?.metadata?.bookingId;
-                console.log('checkout.session.completed received, bookingId=', bookingId);
-                if (bookingId) {
-                    const updated = await Booking.findByIdAndUpdate(
-                        bookingId,
-                        { isPaid: true, paymentLink: '' },
-                        { new: true }
-                    );
-                    console.log('Booking updated:', !!updated);
-                } else {
-                    console.warn('No bookingId in session.metadata', session);
-                }
-                break;
-            }
-
-            case 'payment_intent.succeeded': {
-                // fallback if you rely on payment_intent event
+            case "payment_intent.succeeded": {
                 const paymentIntent = event.data.object;
-                const sessionList = await stripe.checkout.sessions.list({
-                    payment_intent: paymentIntent.id,
-                    limit: 1,
-                });
+                const sessionList = await stripeInstance.checkout.sessions.list({
+                    payment_intent: paymentIntent.id
+                })
+
                 const session = sessionList.data[0];
-                const bookingId = session?.metadata?.bookingId;
-                console.log('payment_intent.succeeded, bookingId=', bookingId);
-                if (bookingId) {
-                    await Booking.findByIdAndUpdate(bookingId, { isPaid: true, paymentLink: '' });
-                } else {
-                    console.warn('No bookingId found for payment_intent', paymentIntent.id);
-                }
+                const {bookingId} = session.metadata;
+
+                console.log(bookingId)
+
+                await Booking.findByIdAndUpdate(bookingId, {
+                    isPaid: true,
+                    paymentLink: ""
+                })
                 break;
             }
-
+                
             default:
-                console.log('Unhandled event type', event.type);
+                console.log("Unhandled event type: ", event.type);
         }
 
-        response.status(200).send('ok');
-        response.json({ received: true });
+        response.json({received: true});
     } catch (error) {
         console.log("Webhook processing error : ", error);
         response.status(500).send("Internal server error");
