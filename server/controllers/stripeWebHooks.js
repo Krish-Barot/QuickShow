@@ -1,17 +1,30 @@
-import stripe from 'stripe'
+import stripe from 'stripe';
 import Booking from '../models/Booking.js';
 
 export const stripeWebHooks = async (request, response) => {
+    console.log('Webhook received');
+    
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
     const sig = request.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!sig) {
+        console.error('No Stripe signature found in headers');
+        return response.status(400).send('No Stripe signature found in headers');
+    }
 
     let event;
 
     try {
-        event = stripeInstance.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-        console.log(event.type)
-    } catch (error) {
-        return response.status(400).send(`Webhook error: ${error.message}`);
+        event = stripeInstance.webhooks.constructEvent(
+            request.body,
+            sig,
+            endpointSecret
+        );
+        console.log(`Webhook event received: ${event.type}`);
+    } catch (err) {
+        console.error(`Webhook signature verification failed: ${err.message}`);
+        return response.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     try {
@@ -19,45 +32,95 @@ export const stripeWebHooks = async (request, response) => {
             case 'checkout.session.completed': {
                 const session = event.data.object;
                 const bookingId = session?.metadata?.bookingId;
-                console.log('checkout.session.completed received, bookingId=', bookingId);
+                
+                console.log('Checkout session completed', {
+                    sessionId: session.id,
+                    paymentStatus: session.payment_status,
+                    bookingId: bookingId
+                });
+
                 if (bookingId) {
-                    const updated = await Booking.findByIdAndUpdate(
+                    const updatedBooking = await Booking.findByIdAndUpdate(
                         bookingId,
-                        { isPaid: true, paymentLink: '' },
-                        { new: true }
+                        { 
+                            isPaid: true, 
+                            paymentLink: '',
+                            paymentStatus: 'paid',
+                            paymentDate: new Date()
+                        },
+                        { new: true, runValidators: true }
                     );
-                    console.log('Booking updated:', !!updated);
+                    
+                    if (updatedBooking) {
+                        console.log(`Successfully updated booking ${bookingId}`, updatedBooking);
+                    } else {
+                        console.error(`Failed to find booking with ID: ${bookingId}`);
+                    }
                 } else {
-                    console.warn('No bookingId in session.metadata', session);
+                    console.warn('No bookingId found in session metadata', {
+                        sessionId: session.id,
+                        metadata: session.metadata
+                    });
                 }
                 break;
             }
 
             case 'payment_intent.succeeded': {
-                // fallback if you rely on payment_intent event
                 const paymentIntent = event.data.object;
-                const sessionList = await stripe.checkout.sessions.list({
-                    payment_intent: paymentIntent.id,
-                    limit: 1,
+                console.log('Payment intent succeeded', {
+                    paymentIntentId: paymentIntent.id,
+                    amount: paymentIntent.amount,
+                    status: paymentIntent.status
                 });
-                const session = sessionList.data[0];
-                const bookingId = session?.metadata?.bookingId;
-                console.log('payment_intent.succeeded, bookingId=', bookingId);
-                if (bookingId) {
-                    await Booking.findByIdAndUpdate(bookingId, { isPaid: true, paymentLink: '' });
-                } else {
-                    console.warn('No bookingId found for payment_intent', paymentIntent.id);
+
+                // Try to find the checkout session for this payment intent
+                try {
+                    const sessions = await stripeInstance.checkout.sessions.list({
+                        payment_intent: paymentIntent.id,
+                        limit: 1,
+                        expand: ['data.payment_intent']
+                    });
+
+                    const session = sessions.data[0];
+                    if (session) {
+                        const bookingId = session?.metadata?.bookingId;
+                        console.log('Found checkout session for payment intent', {
+                            sessionId: session.id,
+                            bookingId: bookingId
+                        });
+
+                        if (bookingId) {
+                            const updatedBooking = await Booking.findByIdAndUpdate(
+                                bookingId,
+                                { 
+                                    isPaid: true, 
+                                    paymentLink: '',
+                                    paymentStatus: 'paid',
+                                    paymentDate: new Date()
+                                },
+                                { new: true, runValidators: true }
+                            );
+                            
+                            if (updatedBooking) {
+                                console.log(`Successfully updated booking ${bookingId} from payment_intent`, updatedBooking);
+                            } else {
+                                console.error(`Failed to find booking with ID: ${bookingId}`);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error finding checkout session for payment intent:', err);
                 }
                 break;
             }
 
             default:
-                console.log('Unhandled event type', event.type);
+                console.log(`Unhandled event type: ${event.type}`);
         }
 
         response.json({ received: true });
     } catch (error) {
-        console.log("Webhook processing error : ", error);
-        response.status(500).send("Internal server error");
+        console.error('Error processing webhook:', error);
+        response.status(500).json({ error: 'Internal server error', message: error.message });
     }
-}   
+};
