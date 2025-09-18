@@ -76,11 +76,6 @@ export const createBooking = async (req, res) => {
             metadata: {
                 bookingId: booking._id.toString()
             },
-            payment_intent_data: {
-                metadata: {
-                    bookingId: booking._id.toString()  // Also include in payment intent metadata
-                }
-            },
             expires_at: Math.floor(Date.now() / 1000) + 30 * 60 // Expires in 30 minutes
         })
 
