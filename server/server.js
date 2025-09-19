@@ -19,14 +19,13 @@ const PORT = 3000;
 await connectDB();
 
 // Stripe Webhooks Route
-
-app.use('/api/stripe', express.raw({ type: 'application/json' }), stripeWebHooks);
+app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebHooks);
 
 
 
 // Middleware
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 app.use(clerkMiddleware());
 
 

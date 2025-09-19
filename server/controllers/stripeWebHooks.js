@@ -18,22 +18,22 @@ export const stripeWebHooks = async (req, res) => {
 
     try {
         switch (event.type) {
-            case 'checkout.session.completed': {
-                const session = event.data.object;
-                const bookingId = session?.metadata?.bookingId;
-                console.log('checkout.session.completed received, bookingId=', bookingId);
-                if (bookingId) {
-                    const updated = await Booking.findByIdAndUpdate(
-                        bookingId,
-                        { isPaid: true, paymentLink: '' },
-                        { new: true }
-                    );
-                    console.log('Booking updated:', !!updated);
-                } else {
-                    console.warn('No bookingId in session.metadata', session);
-                }
-                break;
-            }
+            // case 'checkout.session.completed': {
+            //     const session = event.data.object;
+            //     const bookingId = session?.metadata?.bookingId;
+            //     console.log('checkout.session.completed received, bookingId=', bookingId);
+            //     if (bookingId) {
+            //         const updated = await Booking.findByIdAndUpdate(
+            //             bookingId,
+            //             { isPaid: true, paymentLink: '' },
+            //             { new: true }
+            //         );
+            //         console.log('Booking updated:', !!updated);
+            //     } else {
+            //         console.warn('No bookingId in session.metadata', session);
+            //     }
+            //     break;
+            // }
 
             case 'payment_intent.succeeded': {
                 console.log("1")
