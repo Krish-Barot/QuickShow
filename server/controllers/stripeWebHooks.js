@@ -4,6 +4,12 @@ import Booking from '../models/Booking.js';
 export const stripeWebHooks = async (req, res) => {
     console.log('Webhook received');
     console.log('Headers:', req.headers);
+    console.log('Is req.body a Buffer?', Buffer.isBuffer(req.body));
+    if (Buffer.isBuffer(req.body)) {
+        console.log('Raw body length (bytes):', req.body.length);
+    } else {
+        console.log('req.body type:', typeof req.body);
+    }
     
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
     const sig = req.headers['stripe-signature'];
@@ -14,21 +20,39 @@ export const stripeWebHooks = async (req, res) => {
     }
 
     let event;
-    
-    try {
-        // Use the raw request body that Express.raw() provides
-        event = stripeInstance.webhooks.constructEvent(
-            req.body, // This should be the raw body buffer
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-        
-        console.log(`Received event type: ${event.type}`);
-        
-    } catch (error) {
-        console.error('Webhook signature verification failed:', error.message);
-        return res.status(400).send(`Webhook Error: ${error.message}`);
+    const secretsEnv = process.env.STRIPE_WEBHOOK_SECRET || '';
+    if (!secretsEnv) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET env var');
+        return res.status(500).send('Server misconfiguration: missing webhook signing secret');
     }
+
+    const secrets = secretsEnv.split(',').map(s => s.trim()).filter(Boolean);
+    let verifiedWithIndex = -1;
+
+    for (let i = 0; i < secrets.length; i++) {
+        const secret = secrets[i];
+        try {
+            event = stripeInstance.webhooks.constructEvent(
+                req.body,
+                sig,
+                secret
+            );
+            verifiedWithIndex = i;
+            break; // success
+        } catch (err) {
+            // try next secret
+            continue;
+        }
+    }
+
+    if (!event) {
+        console.error('Webhook signature verification failed for all provided secrets. Count =', secrets.length);
+        const masked = secrets.map(s => (s && s.length >= 8) ? (s.slice(0, 7) + '***') : 'invalid');
+        console.error('Provided secrets (masked):', masked);
+        return res.status(400).send('Webhook Error: signature verification failed');
+    }
+
+    console.log(`Signature verified with secret index ${verifiedWithIndex}. Event type: ${event.type}`);
 
     try {
         switch (event.type) {
