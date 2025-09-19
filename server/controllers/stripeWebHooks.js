@@ -15,7 +15,7 @@ export const stripeWebHooks = async (req, res) => {
     } catch (error) {
         return res.status(400).send(`Webhook error: ${error.message}`);
     }
-
+    console.log(event.type, "#############################################");
     try {
         switch (event.type) {
             // case 'checkout.session.completed': {
