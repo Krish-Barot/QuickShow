@@ -18,14 +18,19 @@ const PORT = 3000;
 // Database Connection
 await connectDB();
 
-// Stripe Webhooks Route
-app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeWebHooks);
-
-
-
-// Middleware
+// Middleware for parsing JSON (for all other routes)
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+
+// Stripe Webhooks Route - Must be before other middleware to get raw body
+app.post(
+    '/api/stripe', 
+    express.raw({ 
+        type: 'application/json',
+        limit: '50mb'  // Adjust the limit as needed
+    }), 
+    stripeWebHooks
+);
 app.use(clerkMiddleware());
 
 
