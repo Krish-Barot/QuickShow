@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "raw-body": "^3.0.1",
     "stripe": "^18.5.0"
   }
 }

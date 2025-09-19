@@ -1,20 +1,19 @@
 import stripe from 'stripe'
 import Booking from '../models/Booking.js';
 
-export const stripeWebHooks = async (request, response) => {
+
+export const stripeWebHooks = async (req, res) => {
     console.log("hello")
-    console.log(request.headers)
+    console.log(req.headers)
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-    const sig = request.headers['stripe-signature'];
+    const sig = req.headers['stripe-signature'];
     console.log(sig)
 
-    let event;
-
     try {
-        event = stripeInstance.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        const event = stripeInstance.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
 
     } catch (error) {
-        return response.status(400).send(`Webhook error: ${error.message}`);
+        return res.status(400).send(`Webhook error: ${error.message}`);
     }
 
     try {
@@ -37,12 +36,15 @@ export const stripeWebHooks = async (request, response) => {
             }
 
             case 'payment_intent.succeeded': {
+                console.log("1")
                 // fallback if you rely on payment_intent event
                 const paymentIntent = event.data.object;
                 const sessionList = await stripe.checkout.sessions.list({
                     payment_intent: paymentIntent.id,
                     limit: 1,
                 });
+
+                console.log("2")
                 const session = sessionList.data[0];
                 const bookingId = session?.metadata?.bookingId;
                 console.log('payment_intent.succeeded, bookingId=', bookingId);
@@ -58,10 +60,10 @@ export const stripeWebHooks = async (request, response) => {
                 console.log('Unhandled event type', event.type);
         }
 
-        response.status(200).send('ok');
-        response.json({ received: true });
+        res.status(200).send('ok');
+        res.json({ received: true });
     } catch (error) {
         console.log("Webhook processing error : ", error);
-        response.status(500).send("Internal server error");
+        res.status(500).send("Internal server error");
     }
 }   
