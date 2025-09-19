@@ -8,9 +8,9 @@ export const stripeWebHooks = async (req, res) => {
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
     const sig = req.headers['stripe-signature'];
     console.log(sig)
-
+    let event
     try {
-        const event = stripeInstance.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        event = stripeInstance.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
 
     } catch (error) {
         return res.status(400).send(`Webhook error: ${error.message}`);
@@ -37,9 +37,8 @@ export const stripeWebHooks = async (req, res) => {
 
             case 'payment_intent.succeeded': {
                 console.log("1")
-                // fallback if you rely on payment_intent event
                 const paymentIntent = event.data.object;
-                const sessionList = await stripe.checkout.sessions.list({
+                const sessionList = await stripeInstance.checkout.sessions.list({
                     payment_intent: paymentIntent.id,
                     limit: 1,
                 });
@@ -60,8 +59,8 @@ export const stripeWebHooks = async (req, res) => {
                 console.log('Unhandled event type', event.type);
         }
 
-        res.status(200).send('ok');
-        res.json({ received: true });
+        return res.status(200).json({ received: true });
+
     } catch (error) {
         console.log("Webhook processing error : ", error);
         res.status(500).send("Internal server error");
