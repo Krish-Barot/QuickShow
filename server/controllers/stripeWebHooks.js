@@ -14,26 +14,27 @@ export const stripeWebHooks = async (req, res) => {
     let event;
     const secretsEnv = process.env.STRIPE_WEBHOOK_SECRET || '';
 
-    const secrets = secretsEnv.split(',').map(s => s.trim()).filter(Boolean);
-    let verifiedWithIndex = -1;
-
-    for (let i = 0; i < secrets.length; i++) {
-        const secret = secrets[i];
-        try {
-            event = stripeInstance.webhooks.constructEvent(
+    // const secrets = secretsEnv.split(',').map(s => s.trim()).filter(Boolean);
+    // let verifiedWithIndex = -1;
+    event = stripeInstance.webhooks.constructEvent(
                 req.body,
                 sig,
-                secret
-            );
-            verifiedWithIndex = i;
-            break; 
-        } catch (err) {
-            continue;
-        }
-    }
+                secretsEnv
+            )
+
+    // for (let i = 0; i < secretsEnv.length; i++) {
+    //     const secret = secretsEnv[i];
+    //     try {
+    //         ;
+    //         verifiedWithIndex = i;
+    //         break; 
+    //     } catch (err) {
+    //         continue;
+    //     }
+    // }
 
     if (!event) {
-        console.error('Webhook signature verification failed for all provided secrets. Count =', secrets.length);
+        console.error('Webhook signature verification failed for all provided secrets. Count =', secretsEnv.length);
         const masked = secrets.map(s => (s && s.length >= 8) ? (s.slice(0, 7) + '***') : 'invalid');
         console.error('Provided secrets (masked):', masked);
         return res.status(400).send('Webhook Error: signature verification failed');

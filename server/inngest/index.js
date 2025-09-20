@@ -54,5 +54,7 @@ const syncUserUpdation = inngest.createFunction(
     }
 )
 
+// Inngest Function to cancel booking and release seats of show after 10 minutes of booking created if payment is not made
+
 
 export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];
