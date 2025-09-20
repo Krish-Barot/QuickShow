@@ -1,5 +1,6 @@
 import stripe from 'stripe';
 import Booking from '../models/Booking.js';
+import { inngest } from '../inngest/index.js';
 
 export const stripeWebHooks = async (req, res) => {
     
@@ -47,6 +48,13 @@ export const stripeWebHooks = async (req, res) => {
                             { isPaid: true, paymentLink: '' },
                             { new: true }
                         );
+
+
+                        // Send Confirmation Email
+                        await inngest.send({
+                            name: 'app/show.booked',
+                            data: {bookingId}
+                        })
                         
                     } else {
                         console.warn('No bookingId found for payment_intent', paymentIntent.id);
