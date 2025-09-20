@@ -2,14 +2,6 @@ import stripe from 'stripe';
 import Booking from '../models/Booking.js';
 
 export const stripeWebHooks = async (req, res) => {
-    console.log('Webhook received');
-    console.log('Headers:', req.headers);
-    console.log('Is req.body a Buffer?', Buffer.isBuffer(req.body));
-    if (Buffer.isBuffer(req.body)) {
-        console.log('Raw body length (bytes):', req.body.length);
-    } else {
-        console.log('req.body type:', typeof req.body);
-    }
     
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
     const sig = req.headers['stripe-signature'];
@@ -21,10 +13,6 @@ export const stripeWebHooks = async (req, res) => {
 
     let event;
     const secretsEnv = process.env.STRIPE_WEBHOOK_SECRET || '';
-    if (!secretsEnv) {
-        console.error('Missing STRIPE_WEBHOOK_SECRET env var');
-        return res.status(500).send('Server misconfiguration: missing webhook signing secret');
-    }
 
     const secrets = secretsEnv.split(',').map(s => s.trim()).filter(Boolean);
     let verifiedWithIndex = -1;
@@ -38,9 +26,8 @@ export const stripeWebHooks = async (req, res) => {
                 secret
             );
             verifiedWithIndex = i;
-            break; // success
+            break; 
         } catch (err) {
-            // try next secret
             continue;
         }
     }
@@ -51,8 +38,6 @@ export const stripeWebHooks = async (req, res) => {
         console.error('Provided secrets (masked):', masked);
         return res.status(400).send('Webhook Error: signature verification failed');
     }
-
-    console.log(`Signature verified with secret index ${verifiedWithIndex}. Event type: ${event.type}`);
 
     try {
         switch (event.type) {
@@ -101,7 +86,6 @@ export const stripeWebHooks = async (req, res) => {
                     }
                 } catch (err) {
                     console.error('Error processing payment_intent.succeeded:', err);
-                    // Don't return error response here as Stripe will retry
                 }
                 break;
             }
@@ -110,12 +94,10 @@ export const stripeWebHooks = async (req, res) => {
                 console.log('Unhandled event type:', event.type);
         }
 
-        // Return a 200 response to acknowledge receipt of the event
         res.json({ received: true });
 
     } catch (error) {
         console.error('Webhook processing error:', error);
-        // Return a 200 response anyway to prevent Stripe from retrying
         res.status(200).json({ error: 'Webhook handler failed' });
     }
 };

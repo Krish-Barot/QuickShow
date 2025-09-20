@@ -18,11 +18,9 @@ const PORT = 3000;
 // Database Connection
 await connectDB();
 
-// CORS first
 app.use(cors());
 
-// Stripe Webhooks Route - MUST be before any body parser to get raw body
-// Use type '*/*' to avoid any content-type mismatches
+// Stripe Webhooks Route 
 app.post(
     '/api/stripe',
     express.raw({
@@ -32,7 +30,6 @@ app.post(
     stripeWebHooks
 );
 
-// JSON body parser for all other routes
 app.use(express.json({ limit: '50mb' }));
 app.use(clerkMiddleware());
 
