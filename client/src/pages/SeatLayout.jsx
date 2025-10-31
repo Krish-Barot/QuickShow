@@ -83,45 +83,30 @@ const SeatLayout = () => {
     }
   };
 
-  // Render seats
+  // Render seats with horizontal scroll on mobile
   const renderSeats = (row) => (
-    <div key={row} className='flex items-center gap-4 mb-6'>
-      <span className='w-6 font-medium text-gray-400 text-sm'>{row}</span>
-      <div className='flex gap-1'>
-        {Array.from({ length: 4 }, (_, i) => {
-          const seatId = `${row}${i + 1}`;
-          return (
-            <button
-              key={seatId}
-              onClick={() => handleSeatClick(seatId)}
-              disabled={occupiesSeats.includes(seatId)}
-              className={`h-10 w-10 flex items-center justify-center rounded-md transition-colors
-                ${selectedSeats.includes(seatId) ? 'bg-primary text-white border-primary' :
-                  occupiesSeats.includes(seatId) ? 'bg-gray-800/50 opacity-50 cursor-not-allowed' :
-                    'bg-gray-800/50 border border-gray-700 hover:border-primary/60'}
-              `}
-            >
-              {seatId}
-            </button>
-          );
-        })}
-        {Array.from({ length: 5 }, (_, i) => {
-          const seatId = `${row}${i + 5}`;
-          return (
-            <button
-              key={seatId}
-              onClick={() => handleSeatClick(seatId)}
-              disabled={occupiesSeats.includes(seatId)}
-              className={`h-10 w-10 flex items-center justify-center rounded-md transition-colors
-                ${selectedSeats.includes(seatId) ? 'bg-primary text-white border-primary' :
-                  occupiesSeats.includes(seatId) ? 'bg-gray-800/50 opacity-50 cursor-not-allowed' :
-                    'bg-gray-800/50 border border-gray-700 hover:border-primary/60'}
-              `}
-            >
-              {seatId}
-            </button>
-          );
-        })}
+    <div key={row} className='flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6 w-full'>
+      <span className='w-6 font-medium text-gray-400 text-sm flex-shrink-0'>{row}</span>
+      <div className='flex-1 overflow-x-auto'>
+        <div className='flex gap-1 sm:gap-2 w-max sm:w-full'>
+          {Array.from({ length: 9 }, (_, i) => {
+            const seatId = `${row}${i + 1}`;
+            return (
+              <button
+                key={seatId}
+                onClick={() => handleSeatClick(seatId)}
+                disabled={occupiesSeats.includes(seatId)}
+                className={`h-10 w-10 flex items-center justify-center rounded-sm transition-colors text-xs
+                  ${selectedSeats.includes(seatId) ? 'bg-primary text-white border-primary' :
+                    occupiesSeats.includes(seatId) ? 'bg-gray-800/50 opacity-50 cursor-not-allowed' :
+                      'bg-gray-800/50 border border-gray-700 hover:border-primary/60'}
+                `}
+              >
+                {seatId}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -218,19 +203,33 @@ const SeatLayout = () => {
               : 'Select a time'}
           </h1>
 
-          <img src={assets.screenImage} alt="screenImage" />
-          <p className='text-gray-400 text-sm mb-6'>SCREEN SIDE</p>
-
-          <div className='w-full max-w-4xl mx-auto mt-10 text-sm text-gray-300'>
-            {/* Center Rows */}
-            <div className='flex justify-center'>
-              <div className='w-1/2 space-y-6'>{centerRows.map(row => renderSeats(row))}</div>
+          {/* Screen Image */}
+          <div className='w-full flex justify-center mb-6 sm:mb-8'>
+            <div className='text-center'>
+              <img src={assets.screenImage} alt="Screen" className='mx-auto w-full max-w-full' />
+              <p className='text-gray-400 text-sm mt-2'>SCREEN SIDE</p>
             </div>
+          </div>
 
-            {/* Side Rows */}
-            <div className='flex justify-between mt-10'>
-              <div className='w-[45%] space-y-6'>{sideRows.slice(0, 4).map(row => renderSeats(row))}</div>
-              <div className='w-[45%] space-y-6'>{sideRows.slice(4).map(row => renderSeats(row))}</div>
+          {/* Seating Layout */}
+          <div className='w-full overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0'>
+            <div className='w-[800px] sm:w-full max-w-4xl mx-auto text-sm text-gray-300'>
+              {/* Center Rows */}
+              <div className='flex justify-center w-full'>
+                <div className='w-full sm:w-1/2 space-y-4 sm:space-y-6'>
+                  {centerRows.map(row => renderSeats(row))}
+                </div>
+              </div>
+
+              {/* Side Rows */}
+              <div className='flex flex-col sm:flex-row justify-between mt-8 sm:mt-10 gap-8 sm:gap-4'>
+                <div className='w-full sm:w-[48%] space-y-4 sm:space-y-6'>
+                  {sideRows.slice(0, 4).map(row => renderSeats(row))}
+                </div>
+                <div className='w-full sm:w-[48%] space-y-4 sm:space-y-6 mt-6 sm:mt-0'>
+                  {sideRows.slice(4).map(row => renderSeats(row))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -242,8 +241,8 @@ const SeatLayout = () => {
             <ArrowRightIcon strokeWidth={3} className='w-4 h-4' />
           </button>
         </div>
+        </div>
       </div>
-    </div>
   );
 };
 
